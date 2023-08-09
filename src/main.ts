@@ -47,7 +47,7 @@ const renderer = new THREE.WebGLRenderer({
 });
 
 camera.position.y = 2;
-camera.position.z = 3;
+camera.position.z = 15;
 
 const orbitControls=new OrbitControls(camera,renderer.domElement);
 orbitControls.target.set( 0, 2, 0 );
@@ -57,15 +57,63 @@ orbitControls.update();
 
 {
   const geometry = new THREE.BoxGeometry( 1, 1, 1 );
+  const attributeUv=geometry.getAttribute("uv");
+  for(let i=0;i<attributeUv.count;i+=1){
+    const x=attributeUv.getX(i);
+    const y=attributeUv.getY(i);
+    attributeUv.setXY(i,x*0.5,y*0.5);
+  }
+  const qty=10*10*10;
+  const arrayOffsetUv=new Float32Array(2*qty);
+  for(let i=0;i<arrayOffsetUv.length;i+=2){
+    arrayOffsetUv[i+0]=Math.floor(Math.random()*2)*0.5;
+    arrayOffsetUv[i+1]=Math.floor(Math.random()*2)*0.5;
+  }
+  const attributeOffsetUv=new THREE.InstancedBufferAttribute(arrayOffsetUv,2);
+  geometry.setAttribute("offsetUv",attributeOffsetUv);
   const material = new THREE.MeshPhysicalMaterial({
-    color: 0x00ff00,
+    map:new THREE.TextureLoader().load("textures/uv_grid_opengl.jpg"),
     metalness:0,
     roughness:0,
     ior:1.7,
     transmission:0.75,
     thickness:0.2,
   });
-  const cube = new THREE.Mesh( geometry, material );
+  material.onBeforeCompile = function ( shader ) {
+// console.log(shader.vertexShader);
+shader.vertexShader = `
+attribute vec2 offsetUv;
+${shader.vertexShader}`;
+    shader.vertexShader = shader.vertexShader.replace(
+    "",
+    `
+    `
+    );
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <uv_vertex>',
+      `
+      #include <uv_vertex>
+      #ifdef USE_MAP
+      vMapUv += offsetUv;
+      #endif
+      `
+    );
+
+    material.userData.shader = shader;
+
+  };
+
+  const cube = new THREE.InstancedMesh( geometry, material,qty);
+  for(let ix=0;ix<10;ix+=1){
+    for(let iy=0;iy<10;iy+=1){
+      for(let iz=0;iz<10;iz+=1){
+        const matrix=new THREE.Matrix4();
+        matrix.makeTranslation(ix*2-10,iy*2,iz*2-10);
+        cube.setMatrixAt(ix*10*10+iy*10+iz,matrix);
+      }
+    }
+
+  }
   scene.add( cube );
   cube.position.y=1;
 }
