@@ -80,15 +80,10 @@ orbitControls.update();
     thickness:0.2,
   });
   material.onBeforeCompile = function ( shader ) {
-// console.log(shader.vertexShader);
-shader.vertexShader = `
-attribute vec2 offsetUv;
-${shader.vertexShader}`;
-    shader.vertexShader = shader.vertexShader.replace(
-    "",
-    `
-    `
-    );
+    // console.log(shader.vertexShader);
+    shader.vertexShader = `
+    attribute vec2 offsetUv;
+    ${shader.vertexShader}`;
     shader.vertexShader = shader.vertexShader.replace(
       '#include <uv_vertex>',
       `
